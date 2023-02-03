@@ -4,3 +4,7 @@ __pycache__
 */data/*
 */out/*
 */wandb/*
+*.egg-info/
+zig-cache/
+dist/
+build/
