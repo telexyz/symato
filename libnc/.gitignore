@@ -1,0 +1,15 @@
+dump_coefs
+dump_coefs.d
+dump_coefs.o
+
+ncspeed
+ncspeed.d
+ncspeed.o
+
+nctest
+nctest.d
+nctest.o
+
+matmul_test
+matmul_test.d
+matmul_test.o

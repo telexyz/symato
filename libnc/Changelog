@@ -1,0 +1,19 @@
+2021-04-24:
+
+- use define-by-run auto differentiation
+- added CUDA support
+- added BF16 support (both CPU and GPU)
+
+2019-06-29:
+
+- added immediate eval mode
+- allow the recompilation of functions
+- multi-threading fixes
+
+2019-05-08:
+
+- faster matmul
+
+2019-02-16:
+
+- initial release

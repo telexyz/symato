@@ -1,0 +1,267 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- Created by GNU Texinfo 6.1, http://www.gnu.org/software/texinfo/ -->
+<head>
+<title>LibNC Library</title>
+
+<meta name="description" content="LibNC Library">
+<meta name="keywords" content="LibNC Library">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="#SEC_Contents" rel="contents" title="Table of Contents">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+</head>
+
+<body lang="en">
+<h1 class="settitle" align="center">LibNC Library</h1>
+
+<a name="SEC_Contents"></a>
+<h2 class="contents-heading">Table of Contents</h2>
+
+<div class="contents">
+<ul class="no-bullet">
+<li><a name="toc-Introduction" href="#Introduction">1 Introduction</a></li>
+<li><a name="toc-Tutorial" href="#Tutorial">2 Tutorial</a>
+<ul class="no-bullet">
+  <li><a name="toc-Usage" href="#Usage">2.1 Usage</a></li>
+  <li><a name="toc-Main-concepts" href="#Main-concepts">2.2 Main concepts</a></li>
+  <li><a name="toc-Tensor-Layout" href="#Tensor-Layout">2.3 Tensor Layout</a></li>
+  <li><a name="toc-Automatic-differentiation-engine" href="#Automatic-differentiation-engine">2.4 Automatic differentiation engine</a></li>
+</ul></li>
+<li><a name="toc-Implementation-details" href="#Implementation-details">3 Implementation details</a>
+<ul class="no-bullet">
+  <li><a name="toc-Determinism" href="#Determinism">3.1 Determinism</a></li>
+  <li><a name="toc-Reproductibility" href="#Reproductibility">3.2 Reproductibility</a></li>
+  <li><a name="toc-Compute-graph-optimization" href="#Compute-graph-optimization">3.3 Compute graph optimization</a></li>
+  <li><a name="toc-CUDA-backend" href="#CUDA-backend">3.4 CUDA backend</a></li>
+  <li><a name="toc-BF16-support" href="#BF16-support">3.5 BF16 support</a></li>
+</ul></li>
+<li><a name="toc-License" href="#License">4 License</a></li>
+
+</ul>
+</div>
+
+
+<a name="Introduction"></a>
+<h2 class="chapter">1 Introduction</h2>
+
+<p>LibNC is a C library for tensor manipulation. It supports automatic
+differentiation and can be used to implement machine learning models
+such as LSTM and Transformers. It has the following features:
+</p>
+<ul>
+<li> C API.
+
+</li><li> Small library, no external dependency, available for Linux and Windows.
+
+</li><li> Define-by-run automatic differentiation engine (same idea as PyTorch).
+
+</li><li> High performance for both CPU (x86) and GPU (CUDA support). Optimized support of float32 and BF16 data types.
+
+</li><li> CPU backend optimized for inference and small batch sizes.
+
+</li><li> Optimized for online learning (i.e. simultaneous evaluation and training) using LSTM or Transformer models.
+
+</li><li> Fully deterministic: return the same results at each run.
+
+</li><li> Reproducible results (CPU backend only): return the same results regardless the CPU brand and OS.
+
+</li></ul>
+
+<a name="Tutorial"></a>
+<h2 class="chapter">2 Tutorial</h2>
+
+<a name="Usage"></a>
+<h3 class="section">2.1 Usage</h3>
+
+<p>The library is provided as a DLL for Linux or Windows. It has a C API
+so it is easily usable from any application.
+</p>
+<p>LibNC requires an x86 CPU with AVX2 support.
+</p>
+<p>The CUDA support is currently only available for Linux. CUDA version
+11.x must be installed. Only Ampere GPUs are currently supported.
+</p>
+<p><samp>nctest.c</samp> provides simple examples and auto differentiation
+testing code. <samp>ncspeed.c</samp> and <samp>matmul_test.c</samp> are
+benchmarks. <samp>dump_coefs.c</samp> documents the parameter dumps.
+</p>
+<p>Larger programs using it are NNCP (LSTM and Transformer models for
+lossless text compression) and GPT2TC (GPT-2 implementation).
+</p>
+<a name="Main-concepts"></a>
+<h3 class="section">2.2 Main concepts</h3>
+
+<p>The API is defined in the <code>libnc.h</code> file.
+</p>
+<p><code>NCContext</code> represents an instance of the library. There is usually one by project. It is created with <code>nc_context_init</code>.
+</p>
+<p><code>NCTensor</code> represents a tensor (multi-dimensional array). It may
+be created with <code>nc_new_tensor</code>. Each tensor references a tensor
+buffer (<code>NCTensorBuffer</code> which contains its raw data (array of
+bytes). <code>NCTensorBuffer</code> reside on a compute device (e.g. CPU or
+GPU) represented by <code>NCDevice</code>.
+</p>
+<p><code>NCTensor</code> and <code>NCTensorBuffer</code> objects are reference
+counted. By default, each function consumes (=decrements) its
+arguments and return a live object. <code>const</code> function parameters
+indicate that the object is not consumed. Use <code>nc_free_tensor()</code>
+(resp. <code>nc_dup_tensor()</code>) to decrement (resp. increment) the
+reference count of a tensor.
+</p>
+<p>The operands of most operations must reside on the same
+device. Tensors can be moved between device with
+<code>nc_tensor_to_device()</code>. When the tensor is on the CPU device, it
+is possible to have a pointer on its raw memory with
+<code>nc_tensor_get_ptr()</code>.
+</p>
+<p>Unlike Pytorch, tensor operations don&rsquo;t do automatic
+broadcast. However, for convenience, <code>nc_add()</code> and
+<code>nc_mul()</code> broadcast their second argument in some common cases.
+</p>
+<a name="Tensor-Layout"></a>
+<h3 class="section">2.3 Tensor Layout</h3>
+
+<p>In a newly created tensor the elements are contiguous in memory. The
+offset of an element [a1, a0] in a tensor of shape (d1, d0) is given by (a1
+* d0 + a0).
+</p>
+<p>LibNC functions enumerate shapes using the smallest dimension first,
+i.e. <code>d0</code> first, then <code>d1</code>:
+</p>
+<div class="example">
+<pre class="example">nc_new_tensor_2d(device, NC_TYPE_F32, d0, d1);
+</pre></div>
+
+<p>Matrices are stored in the column-first representation, e.g. the matrix:
+</p>
+<div class="example">
+<pre class="example">[ 1 3 5 ]
+[ 2 4 6 ]
+</pre></div>
+
+<p>of 2 rows and 3 columns is represented as a tensor of shape (3,
+2). Its memory representation is:
+</p>
+<div class="example">
+<pre class="example">[ 1, 2, 3, 4, 5, 6 ]
+</pre></div>
+
+<a name="Automatic-differentiation-engine"></a>
+<h3 class="section">2.4 Automatic differentiation engine</h3>
+
+<p>Similarly to Pytorch, LibNC dynamically builds a computation
+graph. This graph is used to compute a gradient with
+<code>nc_backward()</code>. More precisely, Each <code>NCTensor</code> may have a
+reference to a <code>NCNode</code> object representing a computation graph
+node. Operations applied on tensors having an associated node return a
+tensor associated to a new node.
+</p>
+<p>Newly user created tensors do not have an associated
+node. <code>nc_set_param</code> adds a user defined node to a tensor. It is
+used to create function parameters. Then <code>nc_backward()</code> calls a
+callback for each parameter with the calculated gradient.
+</p>
+<p>Higher level APIs are normally used to create parameters such as
+<code>nc_new_param()</code>. LibNC provides built-in optimizers such as ADAM
+but the user is free to provide his own. <code>nc_backward()</code> can be
+used to compute higher order derivative too (Hessian vector product,
+see example in <samp>nctest.c</samp>).
+</p>
+<a name="Implementation-details"></a>
+<h2 class="chapter">3 Implementation details</h2>
+
+<a name="Determinism"></a>
+<h3 class="section">3.1 Determinism</h3>
+
+<p>As LibNC is used for lossless data compression in NNCP, a fully
+deterministic behavior is required. It means the same result is
+returned at each run for the same computation on the same system. It
+is provided for both the CPU and GPU backends.
+</p>
+<a name="Reproductibility"></a>
+<h3 class="section">3.2 Reproductibility</h3>
+
+<p>The results are not modified when using a different number of threads,
+CPU brand or OS. Hence the code does not rely on CPU floating point
+instructions having a implementation defined behavior and does not use
+the transcendental functions of the C library.
+</p>
+<p>However, in the current implementation, the CPU and GPU backends do
+not provide the same exact results mainly due to the use of the NVidia
+Tensor Core which has an undefined rounding behavior.
+</p>
+<a name="Compute-graph-optimization"></a>
+<h3 class="section">3.3 Compute graph optimization</h3>
+
+<p>LibNC does various optimizations on the compute graph such as matrix
+product factorisation.
+</p>
+<p>Functions are provided to manually optimize the graph in the case of
+online learning. For this case, evaluation is done sequentially but
+the model parameters are still updated by training. In the training
+phase it is beneficial to combine all the steps of the sequential
+evaluation to make a better usage of the compute device
+parallelism. The function <code>nc_concat_optimization()</code> is employed
+for this purpose.
+</p>
+<a name="CUDA-backend"></a>
+<h3 class="section">3.4 CUDA backend</h3>
+
+<p>NVIDIA CUDA support is optional and fully contained in the
+<samp>libnc_cuda</samp> DLL. This DLL depends on the CUDA and the
+CUBLAS libraries. Only Ampere GPUs are currently supported in order to
+have hardware BF16 support. The LibNC custom CUDA memory allocator
+allocates memory by chunks of 500 MB.
+</p>
+<a name="BF16-support"></a>
+<h3 class="section">3.5 BF16 support</h3>
+
+<p>BF16 (truncated IEEE 32 bit floats to 16 bits) are supported on both
+the CPU and GPU backends. The ADAM optimizer internally keeps the low
+16 bit part of the parameters so that no precision is lost during the
+gradient update.
+</p>
+<a name="License"></a>
+<h2 class="chapter">4 License</h2>
+
+<p>The LibNC library is free to use as a binary shared library. Contact
+the author if access to its source code is required.
+</p>
+<hr>
+
+
+
+</body>
+</html>
