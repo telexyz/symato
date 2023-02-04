@@ -242,13 +242,12 @@ class Block(nn.Module):
                 pos_emb = (self.pos_emb_x + self.pos_emb_y).reshape(T+1, -1)[:-1,:]
                 x = x + pos_emb
 
-        if self.layer_id == 0 and args.pre_ffn > 0:
-            x = x + self.ffnPre(self.ln1(x))
-        else:
-            x = x + self.att(self.ln1(x))
+        if hasattr(self, "ffnPre"): x = x + self.ffnPre(self.ln1(x))
+        else: x = x + self.att(self.ln1(x))
+        # Đôi khi thay att của tầng đầu (layer_id == 0) bằng ffn lại cho kết quả tốt hơn
         x = x + self.ffn(self.ln2(x))
 
-        if args.tiny_att_dim > 0 and self.layer_id == args.tiny_att_layer:
+        if hasattr(self, "tiny_ln"): # áp dụng tiny_attention nếu có
             xx = self.tiny_ln(x)
             q = self.tiny_q(xx)[:, :T, :]
             k = self.tiny_k(xx)[:, :T, :]
@@ -281,9 +280,7 @@ class RWKV(pl.LightningModule):
         self.args = args
 
         self.emb = nn.Embedding(args.vocab_size, args.n_embd)
-
         self.blocks = nn.ModuleList([Block(args, i) for i in range(args.n_layer)])
-
         self.ln_out = nn.LayerNorm(args.n_embd)
         self.head = nn.Linear(args.n_embd, args.vocab_size, bias=False)
 
@@ -298,6 +295,7 @@ class RWKV(pl.LightningModule):
             lr_1x = set()
             lr_2x = set()
             lr_3x = set()
+
             for n, p in self.named_parameters():
                 if "time_mix" in n:
                     if args.my_pile_stage == 2:
@@ -313,12 +311,11 @@ class RWKV(pl.LightningModule):
                     lr_3x.add(n)
                 else:
                     lr_1x.add(n)
+
             lr_1x = sorted(list(lr_1x))
             lr_2x = sorted(list(lr_2x))
             lr_3x = sorted(list(lr_3x))
-            # print('1x', lr_1x)
-            # print('2x', lr_2x)
-            # print('3x', lr_3x)
+
             param_dict = {n: p for n, p in self.named_parameters()}
             if args.my_pile_stage == 2:
                 optim_groups = [
@@ -340,7 +337,7 @@ class RWKV(pl.LightningModule):
         if self.deepspeed_offload:
             return DeepSpeedCPUAdam(optim_groups, lr=self.args.lr_init, betas=self.args.betas, eps=self.args.adam_eps, bias_correction=True, adamw_mode=False, weight_decay=0, amsgrad=False)
         return FusedAdam(optim_groups, lr=self.args.lr_init, betas=self.args.betas, eps=self.args.adam_eps, bias_correction=True, adam_w_mode=False, weight_decay=0, amsgrad=False)
-        # return ZeroOneAdam(optim_groups, lr=self.args.lr_init, betas=self.args.betas, eps=self.args.adam_eps, bias_correction=True, weight_decay=0, amsgrad=False, cuda_aware=False)
+
 
     @property
     def deepspeed_offload(self) -> bool:
@@ -350,88 +347,51 @@ class RWKV(pl.LightningModule):
             return cfg.get("offload_optimizer") or cfg.get("offload_param")
         return False
 
+
     def forward(self, idx):
         args = self.args
+        GRAD_CP = (args.grad_cp == 1) # gradient checkpoint?
         B, T = idx.size()
         assert T <= args.ctx_len, "Cannot forward, model ctx_len is exhausted."
 
         x = self.emb(idx)
-        x_emb = x
-
-        if args.tiny_att_dim > 0:
+        if args.tiny_att_dim > 0: # nếu có tiny_att thì sử dụng x_emb
+            x_emb = x
             for block in self.blocks:
-                if args.grad_cp == 1:
-                    x = deepspeed.checkpointing.checkpoint(block, x, x_emb)
-                else:
-                    x = block(x, x_emb)
+                if GRAD_CP: x = deepspeed.checkpointing.checkpoint(block, x, x_emb)
+                else:       x = block(x, x_emb)
         else:
             for block in self.blocks:
-                if args.grad_cp == 1:
-                    x = deepspeed.checkpointing.checkpoint(block, x)
-                else:
-                    x = block(x)
+                if GRAD_CP: x = deepspeed.checkpointing.checkpoint(block, x)
+                else:       x = block(x)
 
         x = self.ln_out(x)
 
-        if args.head_qk > 0:
+        if args.head_qk > 0: # apply head_qk trick nếu có
             q = self.head_q(x)[:, :T, :]
             k = self.head_k(x)[:, :T, :]
             c = (q @ k.transpose(-2, -1)) * (1.0 / args.head_qk)
             c = c.masked_fill(self.copy_mask[:T, :T] == 0, 0)
-
-            if FLOAT_MODE_fp32:
-                c = c @ F.one_hot(idx, num_classes=args.vocab_size)
-            elif FLOAT_MODE_fp16:
-                c = c @ F.one_hot(idx, num_classes=args.vocab_size).half()
-            elif FLOAT_MODE_bf16:
-                c = c @ F.one_hot(idx, num_classes=args.vocab_size).bfloat16()
-
-            x = self.head(x) + c
+            if   FLOAT_MODE_fp32: c = c @ F.one_hot(idx, num_classes=args.vocab_size)
+            elif FLOAT_MODE_fp16: c = c @ F.one_hot(idx, num_classes=args.vocab_size).half()
+            elif FLOAT_MODE_bf16: c = c @ F.one_hot(idx, num_classes=args.vocab_size).bfloat16()
+            return self.head(x) + c
         else:
-            x = self.head(x)
+            return self.head(x)
 
-        return x
 
     def training_step(self, batch, batch_idx):
-        args = self.args
-        if args.my_qa_mask == 0:
-            idx, targets = batch
-            logits = self(idx)
-            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
-        else:
-            idx, targets, mask = batch
-            mask = mask.view(-1)
-            sum_mask = torch.sum(mask).item()
-            # if sum_mask == 0:
-            #     return torch.tensor([0.0], requires_grad=True)
-
-            logits = self(idx)
-            if sum_mask == mask.shape[0]:
-                loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
-                # print('rank', self.global_rank, 'loss', loss.item())
-            else:
-                loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), reduction='none')
-                # loss_raw = loss
-                loss = torch.sum(loss * mask) / sum_mask
-
-                # torch.set_printoptions(threshold=10000)
-                # if True: #self.global_rank == 1:
-                #     tmp = ''
-                #     sss = 0
-                #     ccc = 0
-                #     for i in range(mask.shape[0]):
-                #         if mask[i] > 0:
-                #             tmp += str(idx.view(-1)[i].item()) + ','
-                #             sss += loss_raw.view(-1)[i].float().item()
-                #             ccc += 1
-                #     print('rank', self.global_rank, 'loss', loss.item(), 'lavg', sss / ccc)#, 'tmp', tmp, 'input', idx)
-
+        idx, targets = batch
+        logits = self(idx)
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
         return L2Wrap.apply(loss, logits)
+
 
     def training_step_end(self, batch_parts):
         all = self.all_gather(batch_parts)
         if self.trainer.is_global_zero:
             self.trainer.my_loss_all = all
+
 
     def generate_init_weight(self):
         print(
@@ -487,9 +447,6 @@ class RWKV(pl.LightningModule):
                 m[n] = m[n].half()
             elif FLOAT_MODE_bf16:
                 m[n] = m[n].bfloat16()
-
-            # if n == "emb.weight":
-            #     print(m[n])
 
         gc.collect()
         torch.cuda.empty_cache()

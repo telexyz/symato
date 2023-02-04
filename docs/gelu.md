@@ -26,8 +26,8 @@ The GELU activation function is computationally efficient, and it's a smooth fun
 In summary, GELU activation function is a smooth, monotonic function that is easy to differentiate, has self-normalizing property and improves performance in NLP tasks, it uses the cumulative probability density function of a standard normal distribution to smooth the input and make the function more robust to large input values.
 
 - - -
-
 https://alaaalatif.github.io/2019-04-11-gelu
+
 ![](files/gelu.png)
 ## GELU motivation: combine ReLU and Dropout
 

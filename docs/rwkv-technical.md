@@ -3,39 +3,42 @@ https://github.com/BlinkDL/RWKV-LM
 # Math
 ![](files/rwkv-00.png)
 
-_RWKV is like [AFT](./aft.md) with special `w_{k, k'}`_
+RWKV is like [AFT](./aft.md) with special $w_{t,t'}$
 
 ![](files/rwkv-04.jpg)
 
 _Triển khai công thức GPT thành công thức RNN_
 
 ## Từ GPT tới RWKV
-- Gọi `F[t]` là trạng thái hệ thống tại (thời điểm) t.
-- Gọi `x[t]` là đầu vào mới tại t.
-- Để GPT dự đoán F[t+1] cần cân nhắc F[0],F[1]...F[t] vì thế nó cần O(T^2) để sinh ra một chuỗi có độ dài T.
+- Gọi $F[t]$ là trạng thái hệ thống tại (thời điểm) $t$.
+- Gọi $x[t]$ là đầu vào mới tại $t$.
+- Để GPT dự đoán $F[t+1]$ cần cân nhắc $F[0],F[1]...F[t]$ vì thế nó cần $O(T^2)$ để sinh ra một chuỗi có độ dài $T$.
 
 Công thức đơn giản hóa của GPT là:
-`F[t+1] = sum_{i=0}^t( exp(Q x[t] * K F[i]).(V F[i]) ) / sum_{i=0}^t( exp(Q x[t] * K F[i]) )`
+$$F[\mathrm{t}+1]=\frac{\sum_{\mathrm{i}=0}^{\mathrm{t}} \exp (\mathbf{Q}x[\mathrm{t}] * \mathbf{K}F[\mathrm{i}]) \cdot(\mathbf{V}F[\mathrm{i}])}{\sum_{\mathrm{i}=0}^{\mathrm{t}} \exp (\mathbf{Q}x[\mathrm{t}] * \mathbf{K}F[\mathrm{i}])}$$
+
 Công thức này rất mạnh mẽ về mặt lý thuyết nhưng trên thực tế không có nghĩa là chúng ta có thể tận dụng hết khả năng của nó với những thuật toán tối ưu hóa thông thường. Loss landscape là rất khó với những phương pháp tối ưu đang có. Hay nói cách khác là cơ chế self-attn là phức tạp đối với các optimizers hiện tại.
 
 So sánh với công thức đơn giản hóa của rwkv ở chế độ song song, nó giống như Apple's aft:
-`F[t+1] = sigma(R_x[t]).sum_{i=0}^t( exp(W.(t-i)).exp(K F[i]).(V F[i]) ) / sum_{i=0}^t( exp(W.(t-i)).exp(K F[i]) )`
-R,K,V là các ma trận trọng số (có thể huấn luyện được), W là vector trọng số (có thể huấn luyện được và là hệ số phân rã thời gian cho từng kênh).
+$$F[\mathrm{t}+1]=\sigma(\mathbf{R}x[\mathrm{t}]) \cdot \frac{\sum_{\mathrm{i}=0}^{\mathrm{t}} \exp (\mathbf{W} \cdot(\mathrm{t}-\mathrm{i})) \cdot \exp (\mathbf{K}F[\mathrm{i}]) \cdot(\mathbf{V}F[\mathrm{i}])}{\sum_{\mathrm{i}=0}^{\mathrm{t}} \exp (\mathbf{W} \cdot(\mathrm{t}-\mathrm{i})) \cdot \exp (\mathbf{K }F[\mathrm{i}])}$$
+$R,K,V$ là các ma trận trọng số (có thể huấn luyện được), W là vector trọng số (có thể huấn luyện được và là hệ số phân rã thời gian cho từng kênh).
 
-- Với GPT, đóng góp của F[t] vào F[t+1] cân đo bằng `exp(Q x[t] . K F[i])`
-- với rwkv, đóng góp của F[t] vào F[t+1] cân đo bằng `sigma(R_x[t]) . exp(W.(t-i)).exp(K F[i])`
-- `sigma` là hàm phi tuyến tính và ở đây chúng ta dùng hàm sigmoid
-- Lưu ý `sigma(R x[t])` không phải là mẫu số mà ta gọi R là "receptance" (sự rung lắc trên từng đơn vị lực tác động)
-- `exp(W.(t-i))` là hệ số phân rã theo thời gian (của từng channel). Ý tưởng này giống như scaling the attention by distance Peng Bo đề xuất được gọi là [time-weighting](#time-weighting-trick)
+- Với GPT, đóng góp của $F[t]$ vào $F[t+1]$ cân đo bằng $\exp (\mathbf{Q}x[\mathrm{t}] * \mathbf{K}F[\mathrm{i}])$
+- với rwkv, đóng góp của $F[t]$ vào $F[t+1]$ cân đo bằng $\sigma(\mathbf{R}x[\mathrm{t}]) \cdot \exp (\mathbf{W} \cdot(\mathrm{t}-\mathrm{i})) \cdot \exp (\mathbf{K}F[\mathrm{i}])$
+- $\sigma$ là hàm phi tuyến tính và ở đây chúng ta dùng hàm sigmoid
+- Lưu ý $\sigma(\mathbf{R}x[\mathrm{t}])$ không phải là mẫu số mà ta gọi R là "receptance" (sự rung lắc trên từng đơn vị lực tác động)
+- $\exp (\mathbf{W} \cdot(\mathrm{t}-\mathrm{i}))$ là hệ số phân rã theo thời gian (của từng channel). Ý tưởng này giống như scaling the attention by distance Peng Bo đề xuất được gọi là [time-weighting](#time-weighting-trick)
 
 ## Punchline
 Ta có thể viết lại công thức gpt ở trên thành rnn (công thức hồi quy):
-- `F[1] = sigma(R x[0]) . exp(K F[0]).(V F[0])/exp(K F[0])`
-- `F[2] = sigma(R x[1]) . exp(K F[1]).(V F[1]) + exp(W).exp(K F[0]).(V F[0])/exp(K F[1]) + exp(W).exp(K F[0])`
-- Dễ thấy: `F[t+1] = sigma(R x[t+1]) . exp(K F[t]).(V F[t]) + exp(W).A[t] / exp(K F[t]) + exp(W).B[t]` với A[t] và B[t] là tử số và mẫu số của bước trước đó.
+- $F[1]=\sigma(\mathbf{R }x[0]) \cdot \frac{ \exp (\mathbf{K }F[0]) \cdot(\mathbf{V }F[0])}{\exp (\mathbf{K }F[0])}$
+
+- $F[2]=\sigma(\mathbf{R }x[1]) \cdot \frac{ \exp (\mathbf{K }F[1]) \cdot(\mathbf{V }F[1])+\exp (\mathbf{W} ) \cdot \exp (\mathbf{K }F[0]) \cdot(\mathbf{V }F[0])}{ \exp (\mathbf{K }F[1])+\exp (\mathbf{W} ) \cdot \exp (\mathbf{K }F[0])}$
+
+- Dễ thấy: $F[t+1]=\sigma(\mathbf{R }x[t]) \cdot \frac{\exp (\mathbf{K}F[\mathrm{t}]) \cdot(\mathbf{V}F[\mathrm{t}])+\exp (\mathbf{W}) \cdot A[\mathrm{t}]}{ \exp (\mathbf{K}F[\mathrm{t}])+\exp (\mathbf{W}) \cdot B[\mathrm{t}]}$ với $A[t]$ và $B[t]$ là tử số và mẫu số của bước trước đó.
 
 Peng Bo tin rằng rwkv có hiệu năng tốt là nhờ W is like repeatedly applying a diagonal matrix. 
-Note `(P^{-1} D P)^n = P^{-1} D^n P`, so it is similar to repeatedly applying a general diagonalizable matrix (ma trận chéo hóa được). Hơn thế nữa nó có thể được biến thành continuous ODE (a bit similar to State Space Models).
+Note $(P^{-1} D P)^n = P^{-1} D^n P$, so it is similar to repeatedly applying a general diagonalizable matrix (ma trận chéo hóa được). Hơn thế nữa nó có thể được biến thành continuous ODE (a bit similar to State Space Models).
 
 ## How it works?
 rwkv tập hợp thông tin vào các kênh (token là vector, mỗi scalar value của vector được gọi là 1 channel - kênh), các kênh này phân rã theo thời gian với tốc độ khác nhau khi chuyển tới token tiếp theo.
@@ -69,7 +72,7 @@ https://www.reddit.com/r/MachineLearning/comments/umq908/r_rwkvv2rnn_a_paralleli
 - `gwern`: You can train them all at <1b. If it has similar to Transformer scaling, the RNN scaling curves already start bending [somewhere around 0.01b](https://www.gwern.net/images/ai/gpt/2020-kaplan-figure7-rnnsvstransformers.png) and should be easily distinguishable far before 20b models.
 - `bo_peng`: It might actually scale better (!) than the usual transformer for LM. I find the L24-D1024 RWKV-2 converges better than the L12-D768 version judging from their LAMBADA performances vs the similar-sized GPT-Neo models.
 - My gut feeling is, while the usual quadratic MHA has more representation capability, it can also be confusing for the optimizer so the trained models are not fully utilizing MHA (has a low rank, etc.)
-- In RWKV-2, the selfAtt is replaced by a number of explicit "time-decay curves" (x, 1, w, w^2, w^3, ...) per channel (a bit like a trainable ALiBi positional encoding), together with K and R.
+- In RWKV-2, the selfAtt is replaced by a number of explicit "time-decay curves" $(x, 1, w, w^2, w^3, ...)$ per channel (a bit like a trainable ALiBi positional encoding), together with K and R.
 
 - `gwern`: That is possible but per ddofer, I would be surprised if it had a better exponent and didn't simply have a better inductive bias which will wash out with scale (and this is why you fit scaling laws).
 - `bo_peng`: Yeah hence we need to test larger models, although L24-D1024 is already a decent size. Note 1.3B = L24-D2048.
@@ -77,7 +80,7 @@ https://www.reddit.com/r/MachineLearning/comments/umq908/r_rwkvv2rnn_a_paralleli
 
 - `ddofer`: Based on ULMFit, the cnn text pretraining paper and our own ProteinBERT, I'd expect it to do better with less data. LSTMs have better inductive bias for this.
 - `bo_peng`: Well it's converging faster so that's like "do better with less data" :)
-- `ddofer`: Smaller models or with less bias also converge faster. And saturate faster. e.g. W2V.
+- `ddofer`: Smaller models or with less bias also converge faster. And saturate faster. e.g. $W2V$.
 - `bo_peng`: AFAIK the current performance is already beyond all RNN variations and it's not plateauing yet.
 
 - Can someone ELI15 this for me? I am absolutely lost how this is accomplished, starting from the Head-QK trick :(
@@ -85,52 +88,52 @@ https://www.reddit.com/r/MachineLearning/comments/umq908/r_rwkvv2rnn_a_paralleli
 
 ## rwkv-2
 - Là RNN nhưng có thể được huấn luyện như GPT transformer
-- Chỉ cần {x_t, a_t, b_t} của vị trí t để tính ra vector của t+1
+- Chỉ cần ${x_{t}, a_{t}, b_{t}}$ của vị trí t để tính ra vector của $t+1$
 - Nó nhanh hơn và tiết kiệm bộ nhớ hơn GPT 100x lần
 
 ### Tầng self-attn (SA Layer)
 ![](files/rwkv-05.jpg)
-- x_t là đầu vào của tầng n tại vị trí t, x_t.shape = (C), C là độ dài vector và cũng là số channels
-- Ma trận trọng số `K`: K.shape = (C,C) init to zero
-- Ma trận trọng số `V`: V.shape = (C,C)
-- Ma trận trọng số `R`: R.shape = (C,C) init to zero
-- Token-shift `Ts` init to (1,1,1,...,0,0,0), Ts.shape = (C) (C//2 values đầu là 1, C//2 values sau là 0)
-- `z_t = Ts*x_{t-1} + (1 - Ts)*x_t` trộn x_t với token x_{t-1} 
-- `k_t =     exp(K @ z_t)`
-- `v_t =        (V @ z_t)`
-- `r_t = sigmoid(R @ z_t)`
-- Tích lũy theo thời gian của kv và k
-  - `W`: vector hệ số phân rã của từng channel, W.shape = (C)
-  - `X`: vector hệ số self-attn của từng channel, X.shape = (C)
-- `a_0 = W*0 + k_0*v_0`
-- `b_0 = W*0 + k_0`
-- `c_t = a_{t-1} + X*k_t * v_t` tử số (numerator)
-- `d_t = b_{t_1} + X*k_t`      mẫu số (denominator)
-- `a_t = W*a_{t-1} + k_t*v_t`
-- `b_t = W*b_{t-1} + k_t`
-- `y_t = r_t * c_t / d_t`
-- `P`: ouput projection, p.shape = (C, C), init to zero
-- Self-attn output `out_t = x_t + P @ (y_t)`
+- $x_{t}$ là đầu vào của tầng n tại vị trí $t$, $x_{t}$.shape = (C), C là độ dài vector và cũng là số channels
+- Ma trận trọng số $K$: K.shape = (C,C) init to zero
+- Ma trận trọng số $V$: V.shape = (C,C)
+- Ma trận trọng số $R$: R.shape = (C,C) init to zero
+- Token-shift $Ts$ init to (1,1,1,...,0,0,0), Ts.shape = (C) (C//2 values đầu là 1, C//2 values sau là 0)
+- $z_{t} = Ts\odot x_{t-1} + (1 - Ts)\odot x_{t}$ trộn $x_{t}$ với token $x_{t-1}$ 
+- $k_{t} =     exp(K . z_{t})$
+- $v_{t} =        (V . z_{t})$
+- $r_{t} = sigmoid(R . z_{t})$
+- Tích lũy theo thời gian của $kv$ và $k$
+  - $W$: vector hệ số phân rã của từng channel, W.shape = (C)
+  - $X$: vector hệ số self-attn của từng channel, X.shape = (C)
+- $a_{0} = W\odot 0 + k_{0}\odot v_{0}$
+- $b_{0} = W\odot 0 + k_{0}$
+- $c_{t} = a_{t-1} + X\odot k_t \odot v_{t}$ tử số (numerator)
+- $d_{t} = b_{t_1} + X\odot k_{t}$      mẫu số (denominator)
+- $a_{t} = W\odot a_{t-1} + k_{t}\odot v_{t}$
+- $b_{t} = W\odot b_{t-1} + k_{t}$
+- $y_{t} = \frac{c_{t}}{d_{t}}$
+- $P$: ouput projection, p.shape = (C, C), init to zero
+- Self-attn output $out_{t} = x_{t} + P.(y_{t})$`
 
 Notes:
 - Ta dùng giá trị khởi tạo được tính toán trước cho W, giá trị W khác nhau cho từng channels khác nhau, và W nhỏ hơn (phân rã nhanh hơn) cho các tầng phía trước.
 - Ta cần "khóa" k và cộng  thêm epsilon vào d để tránh overflows.
-- Các hệ số a,b,c,d làm việc cùng nhau để xây dựng một đường cong phân rã theo thời gian [X, 1, W, W^2, W^3, ...]
+- Các hệ số a,b,c,d làm việc cùng nhau để xây dựng một đường cong phân rã theo thời gian $[X, 1, W, W^2, W^3, ...]$
 - a và b là EMAs (exponential moving average) của kv và k
 - c và d là a và b kết hợp với "self-attn"
 
 ### Tầng FF
 ![](files/rwkv-06.jpg)
-- x_t là đầu vào của tầng n tại vị trí t, x_t.shape = (C)
-- Ma trận trọng số K: K.shape = (4C,C)
-- Ma trận trọng số V: V.shape = (C,4C) init to zero
-- Ma trận trọng số R: R.shape = (C, C) init to zero
-- Token-shift Ts init to (1,1,1,...,0,0,0), Ts.shape = (C) (C//2 values đầu là 1, C//2 values sau là 0)
-- `z_t = Ts*x_{t-1} + (1 - Ts)*x_t` trộn x_t với token x_{t-1} 
-- `k_t = reluSquare(K @ z_t}`, k_t.shape = (4C)
-- `r_t =    sigmoid(R @ z_t)`, r_t.shape = (C)
-- `v_t =           (V @ k_t)`, v_t.shape = (C)
-- FF output, `out_t = x_t + r_t * v_t`, out.shape = (C)
+- $x_{t}$ là đầu vào của tầng n tại vị trí $t$, $x_{t}$.shape = (C)
+- Ma trận trọng số $K$: K.shape = (4C,C)
+- Ma trận trọng số $V$: V.shape = (C,4C) init to zero
+- Ma trận trọng số $R$: R.shape = (C, C) init to zero
+- Token-shift $Ts$ init to (1,1,1,...,0,0,0), Ts.shape = (C) (C//2 values đầu là 1, C//2 values sau là 0)
+- $z_{t} = Ts\odot x_{t-1} + (1 - Ts)\odot x_{t}$ trộn $x_{t}$ với token $x_{t-1}$ 
+- $k_{t} = reluSquare(K.z_{t})$, $k_{t}$.shape = (4C)
+- $r_{t} =    sigmoid(R.z_{t})$, $r_{t}$.shape = (C)
+- $v_{t} =           (V.k_{t})$, $v_{t}$.shape = (C)
+- FF output, $out_{t} = x_{t} + r_{t}\odot v_{t}$, out.shape = (C)
 
 Notes:
 - kv / k (c / d trong công thức rwkv gpt) là cơ chế ghi nhớ. Token với giá trị k cao sẽ được ghi nhớ lâu hơn nếu W gần với 1
@@ -202,8 +205,8 @@ x = self.head(x)    # output: x = logits
 - Việc khởi tạo trọng số embedding siêu nhỏ là rất quan trọng, ví dụ `nn.init.uniform_(a=-1e-4,b=1e-4)` để có thể sử dụng [SmallInitEmb trick](#smallinitemb-trick).
 - Với mô hình 1.5B rwkv-3, Peng Bo sử dụng Adam (no weigh-decay, no dropout) trên 8 * A100 40G
 - batch_size = 32 * 896, ctx_len = 896, vì sử dụng tf32 nên batch_size trở nên nhỏ hơn
-- Với 15B tokens đầu tiên, learning_rate is fixed at 3e-4, và beta=(0.9,0.99)
-- Sau đó set beta = (0.9,0.999) và do an expoential decay of learing_rate, reaching 1e-5 at 332B tokens.
+- Với 15B tokens đầu tiên, learning_rate is fixed at 3e-4, và $\beta$=(0.9,0.99)
+- Sau đó set $\beta$ = (0.9,0.999) và do an expoential decay of learing_rate, reaching 1e-5 at 332B tokens.
 
 ### SmallInitEmb trick
 https://github.com/BlinkDL/SmallInitEmb
