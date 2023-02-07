@@ -1,5 +1,7 @@
 # Viết inference engine bằng Zig, sử dụng nhiều nhất CPU có thể
 
+Infer engine in Rust: https://github.com/mrsteyk/rwkvk-rs
+
 ## Speeding up Python with Zig
 https://www.youtube.com/watch?v=O0MmmZxdct4
 
