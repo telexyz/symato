@@ -26,3 +26,5 @@ PY_VER=/usr/local/bin/zig python3 setup.py bdist_wheel
 pip3 install dist/zig_sum-1.0.1-cp310-cp310-linux_x86_64.whl --force-reinstall
 python3 -c "from zig_sum import sum; print(sum(20, 22))"
 ```
+
+https://github.com/Lucifer-02/python_zig
