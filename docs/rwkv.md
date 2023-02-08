@@ -34,29 +34,8 @@ model = RWKV(file,mode=JAX)
 ELDR = "\n\nExpert Long Detailed Response: "
 model.resetState();t=input("q: ");model.loadContext("\n", t+ELDR);print(model.forward(number=100)["output"])
 ```
-### GPU
-```sh
-pip install rwkvstic transformers sty inquirer scipy pytorch
-# rwkvstic vram
-# Model | 8bit | bf16/fp16 | fp32
-# 14B   | 16GB | 28GB      | >50GB
-# 7B    | 8GB  | 14GB      | 28GB
-# 3B    | 2.8GB| 6GB       | 12GB
-# 1b5   | 1.3GB| 3GB       | 6GB
-```
-```py
-from rwkvstic.load import RWKV; import torch
-from rwkvstic.agnostic.backends import TORCH_QUANT
-file="https://huggingface.co/BlinkDL/rwkv-4-pile-3b/resolve/main/RWKV-4-Pile-3B-20221110-ctx4096.pth"
-# file="https://huggingface.co/BlinkDL/rwkv-4-pile-7b/resolve/main/RWKV-4-Pile-7B-20230109-ctx4096.pth"
-# file="https://huggingface.co/BlinkDL/rwkv-4-pile-14b/resolve/main/RWKV-4-Pile-14B-20230115-5775.pth"
-model = RWKV(file,mode=TORCH_QUANT,runtimedtype=torch.float32,chunksize=4,useGPU=True)
-ELDR = "\n\nExpert Long Detailed Response: "
-model.resetState();t=input("q: ");model.loadContext("\n", t+ELDR);print(model.forward(number=100)["output"])
-```
-
-Hoặc chạy trên [Google Colab](https://colab.research.google.com/drive/1X4WCvsyo2AyYJc6VT2jNT6oIHTAa-3_m) |
-Hoặc thử [Discord chatbot](https://discord.com/invite/bDSBUMeFpc)
+- Hoặc thử trên [Huggingface](https://huggingface.co/spaces/Hazzzardous/RWKV-Instruct)
+- Hoặc chạy trên [Google Colab](https://colab.research.google.com/drive/1X4WCvsyo2AyYJc6VT2jNT6oIHTAa-3_m)
 
 ![](files/rwkv-chat-01.jpg)
 ![](files/rwkv-chat-02.jpg)

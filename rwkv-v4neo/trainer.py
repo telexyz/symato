@@ -19,8 +19,6 @@ class train_callback(pl.Callback):
 
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         args = self.args
-        # if args.cuda_cleanup > 0:
-        #     torch.cuda.empty_cache()
         real_step = trainer.global_step + args.epoch_begin * args.epoch_steps
 
         # LR schedule
@@ -119,7 +117,7 @@ class train_callback(pl.Callback):
         assert "MyDataset" in str(dataset)
         dataset.global_rank = trainer.global_rank
         dataset.real_epoch = int(args.epoch_begin + trainer.current_epoch)
-        dataset.world_size = trainer.world_size
+        dataset.world_size = trainer.world_size # = 1
         # print(f'########## world_size {dataset.world_size} global_rank {dataset.global_rank} real_epoch {dataset.real_epoch} ##########')
 
     def on_train_epoch_end(self, trainer, pl_module):

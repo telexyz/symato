@@ -8,3 +8,4 @@ __pycache__
 zig-cache/
 dist/
 build/
+_git

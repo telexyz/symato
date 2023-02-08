@@ -507,32 +507,6 @@ class Block(nn.Module):
         return x
 ```
 
-https://github.com/BlinkDL/RWKV-LM/blob/main/RWKV-v4neo/run.py
-```py
-TOKEN_MODE = "pile"
-WORD_NAME = [
-    "20B_tokenizer.json",
-    "20B_tokenizer.json",
-]  # [vocab, vocab] for Pile model
-UNKNOWN_CHAR = None
-vocab_size = 50277
-
-MODEL_NAME = '/fsx/BlinkDL/rwkv-release/RWKV-4-Pile-430M-20220808-8066'
-n_layer = 24
-n_embd = 1024
-ctx_len = 1024
-
-args.MODEL_NAME = MODEL_NAME
-args.n_layer = n_layer
-args.n_embd = n_embd
-args.ctx_len = ctx_len
-args.vocab_size = vocab_size
-args.pre_ffn = 0
-args.grad_cp = 0
-args.my_pos_emb = 0
-os.environ["RWKV_RUN_DEVICE"] = args.RUN_DEVICE
-```
-
 # Phân tích bộ từ vựng
 
 - Bộ từ vựng Bloom khoảng 500k từ, bộ từ vựng rwkv đang dùng khoảng 50k từ.
@@ -569,4 +543,4 @@ the pile      50.0k   20x      184M   2.07x
 bloom        500.0k  200x     1084M  12.18x
 ```
 
-Ngoài việc tăng params, vocab_size còn ảnh hưởng tới infer speed ntn? (thông qua không gian tìm kiếm của bộ decoder ...)
+Ngoài việc tăng params, vocab_size còn ảnh hưởng tới infer ở bước cuối tính softmax để lấy mẫu (không nhiều)

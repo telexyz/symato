@@ -1,3 +1,15 @@
+![](files/apps-16.jpg)
+
+![](files/apps-17.jpg)
+
+Sai bắt sửa
+![](files/apps-18.jpg)
+
+Yêu cầu đưa strings về const cho dễ đọc
+![](files/apps-19.jpg)
+
+- - -
+
 ![](files/apps-13.jpg)
 
 ![](files/apps-14.jpg)

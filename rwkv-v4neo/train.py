@@ -49,6 +49,7 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
 
+    parser.add_argument("--data_order", default="", type=str)
     parser.add_argument("--load_model", default="", type=str)  # full path, with .pth
     parser.add_argument("--wandb", default="", type=str)  # wandb project name. if "" then don't use wandb
     parser.add_argument("--proj_dir", default="out", type=str)
@@ -85,8 +86,6 @@ if __name__ == "__main__":
     parser.add_argument("--my_pile_edecay", default=0, type=int)
     parser.add_argument("--layerwise_lr", default=1, type=int)  # layerwise lr for faster convergence (but slower it/s)
     parser.add_argument("--ds_bucket_mb", default=200, type=int)  # deepspeed bucket size in MB. 200 seems enough
-    # parser.add_argument("--cuda_cleanup", default=0, type=int)  # extra cuda cleanup (sometimes helpful)
-
 
     parser.add_argument("--my_sample_len", default=0, type=int)
     parser.add_argument("--my_ffn_shift", default=1, type=int)
@@ -115,7 +114,6 @@ if __name__ == "__main__":
     np.set_printoptions(precision=4, suppress=True, linewidth=200)
     warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*")
     warnings.filterwarnings("ignore", ".*The progress bar already tracks a metric with the*")
-    # os.environ["WDS_SHOW_SEED"] = "1"
 
     args.my_timestamp = datetime.datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
     args.enable_checkpointing = False
@@ -134,55 +132,48 @@ if __name__ == "__main__":
     if not os.path.exists(args.proj_dir):
         os.makedirs(args.proj_dir)
 
-    if args.my_pile_stage > 0:
-        magic_prime_bak = args.magic_prime
-        if args.ctx_len == 1024:
-            args.magic_prime = 324331313
-            args.epoch_count = 8043
-        elif args.ctx_len == 2048:
-            args.magic_prime = 162165671
-            args.epoch_count = 4021
-        elif args.ctx_len == 4096:
-            args.magic_prime = 81082817
-            args.epoch_count = 2010
-        if args.my_pile_shift < 0:
-            if args.ctx_len == 1024:
-                args.my_pile_shift = 0
-            elif args.ctx_len == 2048:
-                args.my_pile_shift = 512
-            elif args.ctx_len == 4096:
-                args.my_pile_shift = 768
+    if args.my_pile_stage > 0: # config riêng cho the pile dataset
+        if   args.ctx_len == 1024: args.epoch_count = 8043
+        elif args.ctx_len == 2048: args.epoch_count = 4021
+        elif args.ctx_len == 4096: args.epoch_count = 2010
 
-        if magic_prime_bak > 0:
-            args.magic_prime = magic_prime_bak
+        if args.magic_prime < 0:
+            if   args.ctx_len == 1024: args.magic_prime = 324331313
+            elif args.ctx_len == 2048: args.magic_prime = 162165671
+            elif args.ctx_len == 4096: args.magic_prime = 81082817
+
+        if args.my_pile_shift < 0:
+            if   args.ctx_len == 1024: args.my_pile_shift = 0
+            elif args.ctx_len == 2048: args.my_pile_shift = 512
+            elif args.ctx_len == 4096: args.my_pile_shift = 768
 
         args.epoch_steps = 40320 // args.real_bsz
         assert args.epoch_steps * args.real_bsz == 40320
-        if args.my_pile_stage == 2:
-            assert args.lr_final == args.lr_init
+
+        # Có nhiều tiến trình khi train dataset the pile, mỗi tiến trình có config khác nhau
+        is_stage2 = (args.my_pile_stage == 2)
+        if is_stage2: assert args.lr_final == args.lr_init
+
         if args.my_pile_stage >= 2:  # find latest saved model
             list_p = []
             for p in os.listdir(args.proj_dir):
                 if p.startswith("rwkv") and p.endswith(".pth"):
                     p = ((p.split("-"))[1].split("."))[0]
-                    if p == "init":
-                        p = -1
-                    else:
-                        p = int(p)
-                    list_p += [p]
+                    if p == "init": p = -1
+                    list_p.append(int(p))
             list_p.sort()
             max_p = list_p[-1]
+
             if len(list_p) > 1:
                 args.my_pile_prev_p = list_p[-2]  # in case max_p is corrupted
-            if max_p == -1:
+            if max_p == -1: # chưa có model nào được save thì load init model
                 args.load_model = f"{args.proj_dir}/rwkv-init.pth"
-            else:
+            else: 
                 args.load_model = f"{args.proj_dir}/rwkv-{max_p}.pth"
-                if args.my_pile_stage == 2:
-                    args.warmup_steps = 10
-                else:
-                    args.warmup_steps = 30
+                if is_stage2: args.warmup_steps = 10
+                else:         args.warmup_steps = 30
             args.epoch_begin = max_p + 1
+    # END pile specific config
 
     samples_per_epoch = args.epoch_steps * args.real_bsz
     tokens_per_epoch = samples_per_epoch * args.ctx_len
@@ -211,7 +202,7 @@ if __name__ == "__main__":
     )
     rank_zero_info(str(vars(args)) + "\n")
 
-    assert args.data_type in ["utf-8", "utf-16le", "numpy", "binidx", "dummy", "uint16"]
+    assert args.data_type in ["utf-8", "symato", "chars"]
 
     if args.lr_final == 0 or args.lr_init == 0:
         rank_zero_info("\n\nNote: lr_final = 0 or lr_init = 0. Using linear LR schedule instead.\n\n")
