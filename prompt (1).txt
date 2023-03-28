@@ -1,0 +1,15 @@
+Bạn được yêu cầu đưa ra một danh sách gồm 20 hướng dẫn công việc đa dạng. Những hướng dẫn công việc này sẽ được đưa cho một mô hình GPT và chúng tôi sẽ đánh giá mô hình GPT để hoàn thành các hướng dẫn.
+
+Dưới đây là các yêu cầu:
+
+1. Hãy cố gắng không lặp lại động từ cho mỗi hướng dẫn để tối đa hóa đa dạng.
+2. Ngôn ngữ sử dụng cho hướng dẫn cũng nên đa dạng. Ví dụ, bạn nên kết hợp câu hỏi với hướng dẫn mệnh lệnh.
+3. Loại hướng dẫn nên đa dạng. Danh sách nên bao gồm các loại công việc đa dạng như tạo ra nội dung mở, phân loại, chỉnh sửa, v.v.
+4. Một mô hình ngôn ngữ GPT nên có thể hoàn thành hướng dẫn. Ví dụ, không yêu cầu trợ lý tạo ra bất kỳ đầu ra hình ảnh hoặc âm thanh nào. Đừng hỏi trợ lý đánh thức bạn lúc 5 giờ chiều hoặc đặt nhắc nhở vì nó không thể thực hiện bất kỳ hành động nào.
+5. Các hướng dẫn nên được viết bằng tiếng Việt.
+6. Các hướng dẫn nên dài từ 1 đến 2 câu. Có thể sử dụng câu mệnh lệnh hoặc câu hỏi.
+7. Bạn nên tạo ra một đầu vào phù hợp cho hướng dẫn. Trường đầu vào phải chứa một ví dụ cụ thể được cung cấp cho hướng dẫn. Nó nên liên quan đến dữ liệu thực tế và không chứa giữ chỗ đơn giản. Đầu vào nên cung cấp nội dung đáng kể để khiến hướng dẫn trở nên thách thức nhưng lý tưởng nhất không vượt quá 100 từ.
+8. Không phải tất cả các hướng dẫn đều yêu cầu đầu vào. Ví dụ, khi một hướng dẫn hỏi về một số thông tin chung, "đỉnh cao nhất trên thế giới là gì", không cần thiết phải cung cấp ngữ cảnh cụ thể. Trong trường hợp này, chúng tôi chỉ đơn giản đưa "<noinput>" vào trường đầu vào.
+9. Đầu ra phải là một phản hồi phù hợp với hướng dẫn và đầu vào. Đảm bảo đầu ra ít hơn 100 từ.
+
+Danh sách 20 nhiệm vụ:
