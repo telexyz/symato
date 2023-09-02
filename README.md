@@ -113,7 +113,7 @@ Hoàn toàn có thể mở rộng bộ vocab bằng cách giữ nguyên symato v
 ### Tôi chưa hiểu bạn giải thích rõ hơn được không?
 Tóm lại symato có 3 bộ vocabs chính và các bản mở rộng của chúng:
 1. `symato-3k` gồm 256 bytes, 18 marktones, khoảng 2800 syms (âm tiết viết không dấu viết thường) và các tokens bổ trợ
-2. `symato-16k` gồm bộ từ vựng `symato-3k` cộng thêm khoảng 13k đơn âm tiết và đôi âm tiết tiếng Việt có dấu viết xuất hiện thường xuyên nhất trong dữ liệu huấn luyện (unigram và bigram)
+2. `symato-16k` gồm bộ từ vựng `symato-3k` cộng thêm khoảng 13k đơn âm tiết và đôi âm tiết tiếng Việt có dấu, xuất hiện thường xuyên nhất trong dữ liệu huấn luyện (unigram và bigram)
 3. `symato-32k` gồm bộ từ vựng `symato-16k` cộng thêm các bigrams và trigrams ... 
 4. `symato+` gồm symato-3k,16k,32k và các tokens khác xây dựng bằng BPE để cover các dữ liệu phi âm tiết tốt hơn.
 
