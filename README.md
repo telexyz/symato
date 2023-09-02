@@ -24,7 +24,7 @@
 - [x] Train mô hình có độ lớn phù hợp với dữ liệu sau khi đã lọc và cân bằng
   - [x] Xây dựng symato_16k (vs sentencepiece 16k)
   - [x] Độ hiệu quả của symato_16k (xem [báo cáo kỹ thuật](https://docs.google.com/document/d/1VQz-4Hy7s6h0dtzbFyL3d4vcOkDd5LH0JAoMlYF807A/edit))
-- [x] Release [racoon](./racoon) bản rút gọn RWKV-v4 để huấn luyện mô hình ngôn ngữ thuần Việt
+- [x] Release [racoon](./racoon) bản rút gọn RWKV-v4 để huấn luyện mô hình ngôn ngữ
 - [ ] Huấn luyện mô hình ngôn ngữ lớn 2.5 tỉ tham số trên khoảng 100G dữ liệu chọn lọc
 
 - - -
@@ -48,7 +48,7 @@ https://github.com/telexyz/symato/assets/8133/d536b9ef-d7c6-4529-9640-b32d84e293
 
 # Giới thiệu
 
-__Đây nơi thiết lập các thử nghiệm xây dựng mô hình ngôn ngữ lớn với bộ dữ liệu càng thuần Việt càng tốt, tập trung vào âm tiết tiếng Việt, để làm nhẹ bộ tham số và làm nổi bật đặc trưng của tiếng Việt__. Và trả lời các câu hỏi dưới đây:
+__Đây nơi thiết lập các thử nghiệm xây dựng mô hình ngôn ngữ lớn với bộ dữ liệu tiếng Việt, tập trung vào âm tiết tiếng Việt, để làm nhẹ bộ tham số và làm nổi bật đặc trưng của tiếng Việt__. Và trả lời các câu hỏi dưới đây:
 
 - Liệu có thể lặp lại scaling law chỉ với một lượng dữ liệu và tính toán hạn chế? (xem cramming paper)
 
