@@ -1,4 +1,5 @@
-Tham gia thảo luận tại https://discord.gg/NuYwhH6Kbb
+- Tham gia thảo luận tại https://discord.gg/NuYwhH6Kbb
+- Website chính thức https://www.symato.xyz/about-us
 
 # TODOs
 
@@ -9,7 +10,7 @@ Tham gia thảo luận tại https://discord.gg/NuYwhH6Kbb
   3. Bộ vocab 3k tokens là đủ để encode hiệu quả mọi corpus có hàm lượng tiếng Việt lớn, và việc sử dụng 256 bytes để encode phần còn lại cũng sẽ hoạt động tốt.
 - [x] Đọc hiểu rwkv ([xem rwkv.md](./docs/rwkv.md) hoặc [bản rút gọn](./docs/rwkv-illustrated.md))
 - [x] Viết lại rwkv inference engine [~200 loc in python](https://github.com/telexyz/symato/blob/1854f26d097ea616f8f76c054d0357f739d7c92c/model_run_f32.py)
-- [x] Đọc hiểu và rút gọn [code training](./rwkv-v4neo)
+- [x] Đọc hiểu và rút gọn [code training]([./rwkv-v4neo](https://github.com/telexyz/symato/tree/a8f19d4e24dea966f25e1deeb8338cd8d47b0297/rwkv-v4neo))
 - [x] rwkv-lm với dataset âm tiết tiếng Việt bất kỳ
   - [x] Thiết kế symato vocab
   - [x] Tạo mini dataset [vlc.xyz](https://raw.githubusercontent.com/telexyz/data/master/vlc.xyz) (16MB)
@@ -22,10 +23,9 @@ Tham gia thảo luận tại https://discord.gg/NuYwhH6Kbb
 - [x] Thu thập và xử lý 100G dữ liệu: [xem vi project](https://github.com/telexyz/vi)
 - [x] Train mô hình có độ lớn phù hợp với dữ liệu sau khi đã lọc và cân bằng
   - [x] Xây dựng symato_16k (vs sentencepiece 16k)
-  - [x] Chứng minh độ hiệu quả của symato_16k bằng thực nghiệm (xem [báo cáo kỹ thuật](https://docs.google.com/document/d/1VQz-4Hy7s6h0dtzbFyL3d4vcOkDd5LH0JAoMlYF807A/edit))
-- [x] Release [racoon](./racoon) bản rút gọn RWKV-v4 để huấn luyện mô hình ngôn ngữ thuần Việt
+  - [x] Độ hiệu quả của symato_16k (xem [báo cáo kỹ thuật](https://docs.google.com/document/d/1VQz-4Hy7s6h0dtzbFyL3d4vcOkDd5LH0JAoMlYF807A/edit))
+- [x] Release [racoon](./racoon) bản rút gọn RWKV-v4 để huấn luyện mô hình ngôn ngữ
 - [ ] Huấn luyện mô hình ngôn ngữ lớn 2.5 tỉ tham số trên khoảng 100G dữ liệu chọn lọc
-
 
 - - -
 
@@ -37,6 +37,10 @@ https://user-images.githubusercontent.com/8133/216773986-3d26d73a-9206-45b1-ae8f
 ### Thử nghiệm làm chatbot
 https://user-images.githubusercontent.com/8133/225555655-7bf1e15c-ecdd-45da-a084-7cce1eef7b29.mp4
 
+### Chatbot đời thứ 5
+https://user-images.githubusercontent.com/8133/236672299-c4cf39c0-a7a0-44d8-b9be-c1b056b1df35.mp4
+
+https://github.com/telexyz/symato/assets/8133/d536b9ef-d7c6-4529-9640-b32d84e29373
 
 - - -
 
@@ -44,7 +48,7 @@ https://user-images.githubusercontent.com/8133/225555655-7bf1e15c-ecdd-45da-a084
 
 # Giới thiệu
 
-__Đây nơi thiết lập các thử nghiệm xây dựng [mô hình văn bản rất to](./docs/MHVBRT.md) với bộ dữ liệu càng thuần Việt càng tốt, tập trung vào âm tiết tiếng Việt, để làm nhẹ bộ tham số và làm nổi bật đặc trưng của tiếng Việt__. Và trả lời các câu hỏi dưới đây:
+__Đây nơi thiết lập các thử nghiệm xây dựng mô hình ngôn ngữ lớn với bộ dữ liệu tiếng Việt, tập trung vào âm tiết tiếng Việt, để làm nhẹ bộ tham số và làm nổi bật đặc trưng của tiếng Việt__. Và trả lời các câu hỏi dưới đây:
 
 - Liệu có thể lặp lại scaling law chỉ với một lượng dữ liệu và tính toán hạn chế? (xem cramming paper)
 
@@ -109,7 +113,7 @@ Hoàn toàn có thể mở rộng bộ vocab bằng cách giữ nguyên symato v
 ### Tôi chưa hiểu bạn giải thích rõ hơn được không?
 Tóm lại symato có 3 bộ vocabs chính và các bản mở rộng của chúng:
 1. `symato-3k` gồm 256 bytes, 18 marktones, khoảng 2800 syms (âm tiết viết không dấu viết thường) và các tokens bổ trợ
-2. `symato-16k` gồm bộ từ vựng `symato-3k` cộng thêm khoảng 13k đơn âm tiết và đôi âm tiết tiếng Việt có dấu viết xuất hiện thường xuyên nhất trong dữ liệu huấn luyện (unigram và bigram)
+2. `symato-16k` gồm bộ từ vựng `symato-3k` cộng thêm khoảng 13k đơn âm tiết và đôi âm tiết tiếng Việt có dấu, xuất hiện thường xuyên nhất trong dữ liệu huấn luyện (unigram và bigram)
 3. `symato-32k` gồm bộ từ vựng `symato-16k` cộng thêm các bigrams và trigrams ... 
 4. `symato+` gồm symato-3k,16k,32k và các tokens khác xây dựng bằng BPE để cover các dữ liệu phi âm tiết tốt hơn.
 

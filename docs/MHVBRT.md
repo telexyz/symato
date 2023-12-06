@@ -26,7 +26,7 @@ một là rà soát tập huấn luyện. Cái này thì tốn công tốn của
 
 Vì là mô hình văn bản, nên bất cứ khi nào dữ liệu diễn đạt dưới dạng văn bản, hay kỹ thuật hơn là chuỗi các token, thì máy nó học được hết. Dù dữ liệu là văn bản ngôn ngữ tự nhiên, hay mã nguồn, hình ảnh, âm thanh, video, thậm chí DNA, protein, phân tử thuốc, hồ sơ bệnh án, hay chuỗi các hành động của robot. Một khi tất thảy được kết nối, hoặc học bằng cùng một máy, khi đó khó mà bảo máy không thông minh như người.
 
-Thực ra là chúng cóbiểu hiện như người, mà không có một mảy may ý thức việc nó đang làm, hay bất kỳ cảm xúc gì. Cuốn sách có đầy dòng lâm li bi đát hay hào khí ngất trời cũng chỉ là mực in trên giấy, tuyệt nhiên không có tí gì là thông minh cả. Sự thông minh ấy, là __do đối tượng thông minh tiếp nhận diễn ngôn ra__ (như con người) hay cảm thấy (như con mèo).
+Thực ra là chúng có biểu hiện như người, mà không có một mảy may ý thức việc nó đang làm, hay bất kỳ cảm xúc gì. Cuốn sách có đầy dòng lâm li bi đát hay hào khí ngất trời cũng chỉ là mực in trên giấy, tuyệt nhiên không có tí gì là thông minh cả. Sự thông minh ấy, là __do đối tượng thông minh tiếp nhận diễn ngôn ra__.
 
 Cứ đà này, ta đang tiến tới cảnh làm-một-lần-rồi-thôi, __ít ra trong 10 năm tới__ cho đến khi có cách tiếp cận tốt hơn, mạnh mẽ hơn thay thế.
 #AI, #LLM, #ChatGPT

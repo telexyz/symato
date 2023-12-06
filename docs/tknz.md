@@ -1,3 +1,35 @@
+# Để tận dụng một LM tốt nhưng bộ tokenizer lại không support domain phải làm gì?
+
+## averaging of subtokens that are similar to the new added tokens
+https://app.slack.com/client/T051JGNCDSR/C056R7ACZJ5/thread/C056R7ACZJ5-1683787313.441939
+
+Giả sử tokenizer nguồn và tokenizer đích được sử dụng trong cùng ngôn ngữ, nhưng có phân phối khác nhau (huấn luyện trên 2 tập dữ liệu khác nhau), do đó chúng là 2 tokenizers là khác nhau. Nhưng các từ (chúng nhìn thấy) giống nhau. **Ví dụ như từ `of`, `and` và `the` giữa hai tokenizer là tương tự về ý nghĩa.**
+
+Đối với một từ bạn muốn thêm vào tokenizer mới, ta **tìm kiếm** các từ (hoặc subwords) trong tokenizer cũ mà cũng có trong tokenizer mới và (có nghĩa) tương tự với từ đó trong không gian nhúng cũ. Sau đó, thực hiện trung bình có trọng số (weighted avg) của các nhúng trong không gian mới.
+
+Bạn có thể nhận được một số kết quả không mong muốn nếu bạn thêm các từ quá ngắn hoặc quá phổ biến vì từ được sử dụng trong tokenizer mới có thể khác nhau. Ví dụ, từ `for` được sử dụng trong `for i in range(100)` nhưng cũng được sử dụng trong `This is for john`.
+
+i think they talked about this in the paper too (below paper)
+
+Giải thích **weighted avg** với 1 từ trong tknz mới, dùng cosine similarity để tìm các tokens **tương tự** trong old embeddings, rồi dùng weighted (similarity) avg để khởi tạo embedding của từ (token) mới đó.
+
+**Đơn giản hơn là chỉ add words trong dictionary của language mới vào vocab không dùng BPE nữa.**
+
+
+## Initializing New Word Embeddings for Pretrained Language Models
+- https://nlp.stanford.edu/~johnhew/vocab-expansion.html
+- Cho thêm tokens của domain vào vocab sẽ giúp finetune tốt hơn
+- Cần avg embedding thay vì default init cho new tokens trước khi finetune
+
+
+## Efficient Domain Adaptation of Language Models via Adaptive Tokenization
+- https://arxiv.org/pdf/2109.07460.pdf
+- They just change greedy algorithm of BPE to adapt it to the new domain. The vocab is the same.
+
+
+- - -
+
+
 https://discord.com/channels/992359628979568762/992359845963497512/1069818939200254003  
 ![](files/tknz-00.jpg)
 

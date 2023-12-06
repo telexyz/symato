@@ -35,9 +35,8 @@ class train_callback(pl.Callback):
         if args.lr_final == args.lr_init or args.epoch_count == 0:
             lr = args.lr_init
         else:
-            decay_step = real_step - args.my_pile_edecay * args.epoch_steps
-            decay_total = (args.epoch_count - args.my_pile_edecay) * args.epoch_steps
-            progress = (decay_step - w_step + 1) / (decay_total - w_step)
+            total_steps = args.epoch_count * args.epoch_steps
+            progress = (real_step - w_step + 1) / (total_steps - w_step)
             progress = min(1, max(0, progress))
 
             if args.lr_final == 0 or args.lr_init == 0:  # linear decay
@@ -174,8 +173,7 @@ if __name__ == "__main__":
     parser.add_argument("--beta2", default=0.99, type=float)  # use 0.999 when your model is close to convergence
     parser.add_argument("--adam_eps", default=1e-8, type=float)
 
-    parser.add_argument("--grad_cp", default=0, type=int)  # gradient checkpt: saves VRAM, but slower
-    parser.add_argument("--my_pile_edecay", default=0, type=int)
+    parser.add_argument("--grad_cp", default=0, type=int)  # gradient checkpoints: saves VRAM, but slower
     parser.add_argument("--layerwise_lr", default=1, type=int)  # layerwise lr for faster convergence (but slower it/s)
     parser.add_argument("--ds_bucket_mb", default=200, type=int)  # deepspeed bucket size in MB. 200 seems enough
 
@@ -246,13 +244,6 @@ if __name__ == "__main__":
 
     from model import Racoon
     model = Racoon(args)
-    # model.rwkv = torch.compile(model.rwkv) # 27463 Segmentation fault
-    # https://discuss.pytorch.org/t/segmentation-fault-core-dumped-with-torch-compile/167835
-    # 
-    # model = torch.compile(model) # AssertionError: expected FunctionType found method
-    # https://github.com/Lightning-AI/lightning/issues/16395#issuecomment-1430451591
-    # 
-    # => Nhiều khả năng lỗi là do trong rwkv có nhân cuda mà torch 2.0 chưa hỗ trợ việc kết hợp compile
 
     if len(args.load_model) == 0: # shall we build the initial weights?
         args.load_model = f"{args.proj_dir}/rwkv-init.pth"
